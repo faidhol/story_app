@@ -23,6 +23,8 @@ class _LoginPageState extends State<LoginPage> {
 
   late AuthViewModel vm;
 
+  bool isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -47,19 +49,21 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    setState(() => isLoading = true);
+
     final success = await vm.login(email, password);
 
     if (!mounted) return;
 
+    setState(() => isLoading = false);
+
     if (success) {
       widget.onLoginSuccess();
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(vm.error ?? "Login gagal")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(vm.error ?? "Login gagal")),
+      );
     }
-
-    setState(() {});
   }
 
   @override
@@ -102,7 +106,7 @@ class _LoginPageState extends State<LoginPage> {
 
             const SizedBox(height: 20),
 
-            vm.isLoading
+            isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : SizedBox(
                     height: 50,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:story_app/view/story/map_picker_page.dart';
 import 'utils/preferences_helper.dart';
 import 'view/auth/login_page.dart';
 import 'view/auth/register_page.dart';
@@ -26,8 +28,11 @@ class MyRouterDelegate extends RouterDelegate<Object>
   bool isLoggedIn = false;
   bool isRegister = false;
   bool isAddStory = false;
+  bool isPickingLocation = false;
 
   StoryModel? selectedStory;
+
+  LatLng? selectedLocation;
 
   Key storyListKey = UniqueKey();
 
@@ -37,7 +42,6 @@ class MyRouterDelegate extends RouterDelegate<Object>
     notifyListeners();
   }
 
-  /// 🔥 ACTIONS
   void login() {
     isLoggedIn = true;
     notifyListeners();
@@ -48,6 +52,7 @@ class MyRouterDelegate extends RouterDelegate<Object>
     isLoggedIn = false;
     isRegister = false;
     isAddStory = false;
+    isPickingLocation = false;
     selectedStory = null;
     notifyListeners();
   }
@@ -69,6 +74,7 @@ class MyRouterDelegate extends RouterDelegate<Object>
 
   void closeAddStory() {
     isAddStory = false;
+    selectedLocation = null; // reset lokasi
     notifyListeners();
   }
 
@@ -79,6 +85,22 @@ class MyRouterDelegate extends RouterDelegate<Object>
 
   void closeDetail() {
     selectedStory = null;
+    notifyListeners();
+  }
+
+  void openMapPicker() {
+    isPickingLocation = true;
+    notifyListeners();
+  }
+
+  void closeMapPicker() {
+    isPickingLocation = false;
+    notifyListeners();
+  }
+
+  void setLocation(LatLng latLng) {
+    selectedLocation = latLng;
+    isPickingLocation = false;
     notifyListeners();
   }
 
@@ -94,11 +116,16 @@ class MyRouterDelegate extends RouterDelegate<Object>
       pages: [
         if (!isLoggedIn)
           MaterialPage(
-            child: LoginPage(onLoginSuccess: login, onRegister: openRegister),
+            child: LoginPage(
+              onLoginSuccess: login,
+              onRegister: openRegister,
+            ),
           ),
 
         if (!isLoggedIn && isRegister)
-          MaterialPage(child: RegisterPage(onBack: closeRegister)),
+          MaterialPage(
+            child: RegisterPage(onBack: closeRegister),
+          ),
 
         if (isLoggedIn)
           MaterialPage(
@@ -115,17 +142,32 @@ class MyRouterDelegate extends RouterDelegate<Object>
             child: AddStoryPage(
               onBack: closeAddStory,
               onSuccess: refreshStories,
+              onPickLocation: openMapPicker,     
+              selectedLocation: selectedLocation,
+            ),
+          ),
+
+        if (isPickingLocation)
+          MaterialPage(
+            child: MapPickerPage(
+              onBack: closeMapPicker,
+              onPicked: setLocation,
             ),
           ),
 
         if (selectedStory != null)
           MaterialPage(
-            child: StoryDetailPage(story: selectedStory!, onBack: closeDetail),
+            child: StoryDetailPage(
+              story: selectedStory!,
+              onBack: closeDetail,
+            ),
           ),
       ],
 
       onDidRemovePage: (page) {
-        if (selectedStory != null) {
+        if (isPickingLocation) {
+          closeMapPicker();
+        } else if (selectedStory != null) {
           closeDetail();
         } else if (isAddStory) {
           closeAddStory();
@@ -138,7 +180,10 @@ class MyRouterDelegate extends RouterDelegate<Object>
 
   @override
   Future<bool> popRoute() {
-    if (selectedStory != null) {
+    if (isPickingLocation) {
+      closeMapPicker();
+      return Future.value(true);
+    } else if (selectedStory != null) {
       closeDetail();
       return Future.value(true);
     } else if (isAddStory) {

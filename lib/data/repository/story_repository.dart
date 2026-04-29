@@ -1,67 +1,29 @@
 import 'dart:io';
 import '../api_service.dart';
 import '../models/story_model.dart';
-import '../../utils/preferences_helper.dart';
 
 class StoryRepository {
-  final ApiService _apiService;
+  final ApiService apiService;
 
-  StoryRepository(this._apiService);
+  StoryRepository(this.apiService);
 
-  Future<List<StoryModel>> getStories() async {
-    try {
-      final token = await PreferencesHelper.getToken();
+  Future<List<StoryModel>> getStories(int page, int size) async {
+    final data = await apiService.getStories(page, size);
 
-      if (token == null) {
-        throw Exception('Token tidak ditemukan, silakan login ulang');
-      }
-
-      final response = await _apiService.getStories(token);
-
-      final List list = response['listStory'];
-
-      return list.map((e) => StoryModel.fromJson(e)).toList();
-    } catch (e) {
-      throw Exception('Gagal mengambil story: $e');
-    }
-  }
-
-  Future<StoryModel> getDetailStory(String id) async {
-    try {
-      final token = await PreferencesHelper.getToken();
-
-      if (token == null) {
-        throw Exception('Token tidak ditemukan');
-      }
-
-      final response = await _apiService.getDetailStory(id, token);
-
-      return StoryModel.fromJson(response['story']);
-    } catch (e) {
-      throw Exception('Gagal mengambil detail story: $e');
-    }
+    return data.map((e) => StoryModel.fromJson(e)).toList();
   }
 
   Future<bool> addStory({
     required File file,
     required String description,
+    double? lat,
+    double? lon,
   }) async {
-    try {
-      final token = await PreferencesHelper.getToken();
-
-      if (token == null) {
-        throw Exception('Token tidak ditemukan');
-      }
-
-      final success = await _apiService.uploadStory(
-        token: token,
-        file: file,
-        description: description,
-      );
-
-      return success;
-    } catch (e) {
-      throw Exception('Gagal upload story: $e');
-    }
+    return await apiService.addStory(
+      file: file,
+      description: description,
+      lat: lat,
+      lon: lon,
+    );
   }
 }

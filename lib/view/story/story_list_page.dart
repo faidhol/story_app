@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
+
 import '../../data/api_service.dart';
-import '../../data/repository/story_repository.dart';
 import '../../data/models/story_model.dart';
+import '../../data/repository/story_repository.dart';
 
 class StoryListPage extends StatefulWidget {
   final VoidCallback onLogout;
@@ -20,36 +22,43 @@ class StoryListPage extends StatefulWidget {
 }
 
 class _StoryListPageState extends State<StoryListPage> {
-  final repo = StoryRepository(ApiService());
+  static const _pageSize = 10;
 
-  List<StoryModel> stories = [];
-  bool isLoading = true;
-  String? error;
+  final PagingController<int, StoryModel> _pagingController =
+      PagingController(firstPageKey: 1);
+
+  final repo = StoryRepository(ApiService());
 
   @override
   void initState() {
     super.initState();
-    fetchStories();
+
+    _pagingController.addPageRequestListener((pageKey) {
+      fetchPage(pageKey);
+    });
   }
 
-  Future<void> fetchStories() async {
-    setState(() {
-      isLoading = true;
-      error = null;
-    });
-
+  Future<void> fetchPage(int pageKey) async {
     try {
-      final result = await repo.getStories();
-      stories = result;
-    } catch (e) {
-      error = e.toString();
-    }
+      final newItems = await repo.getStories(pageKey, _pageSize);
 
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
+      final isLastPage = newItems.length < _pageSize;
+
+      if (isLastPage) {
+        _pagingController.appendLastPage(newItems);
+      } else {
+        final nextPageKey = pageKey + 1;
+        _pagingController.appendPage(newItems, nextPageKey);
+      }
+    } catch (error) {
+      _pagingController.error = error;
     }
+  }
+
+  @override
+  void dispose() {
+    _pagingController.dispose();
+    super.dispose();
   }
 
   @override
@@ -57,7 +66,6 @@ class _StoryListPageState extends State<StoryListPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Story App"),
-        centerTitle: true,
         actions: [
           IconButton(
             onPressed: widget.onLogout,
@@ -66,53 +74,45 @@ class _StoryListPageState extends State<StoryListPage> {
         ],
       ),
 
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : error != null
-          ? Center(child: Text(error!))
-          : stories.isEmpty
-          ? const Center(child: Text("Belum ada story"))
-          : RefreshIndicator(
-              onRefresh: fetchStories,
-              child: ListView.builder(
-                itemCount: stories.length,
-                itemBuilder: (context, index) {
-                  final story = stories[index];
-
-                  return Card(
-                    margin: const EdgeInsets.all(10),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(10),
-
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          story.photoUrl,
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) =>
-                              const Icon(Icons.broken_image),
-                        ),
-                      ),
-
-                      title: Text(
-                        story.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-
-                      subtitle: Text(
-                        story.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-
-                      onTap: () => widget.onDetail(story),
-                    ),
-                  );
-                },
+      body: PagedListView<int, StoryModel>(
+        pagingController: _pagingController,
+        builderDelegate: PagedChildBuilderDelegate<StoryModel>(
+          itemBuilder: (context, item, index) {
+            return Card(
+              margin: const EdgeInsets.all(10),
+              child: ListTile(
+                leading: Image.network(
+                  item.photoUrl,
+                  width: 60,
+                  fit: BoxFit.cover,
+                ),
+                title: Text(item.name),
+                subtitle: Text(
+                  item.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () => widget.onDetail(item),
               ),
-            ),
+            );
+          },
+
+          firstPageProgressIndicatorBuilder: (_) =>
+              const Center(child: CircularProgressIndicator()),
+
+          firstPageErrorIndicatorBuilder: (_) =>
+              const Center(child: Text("Gagal memuat data")),
+
+          noItemsFoundIndicatorBuilder: (_) =>
+              const Center(child: Text("Belum ada story")),
+
+          newPageProgressIndicatorBuilder: (_) =>
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+        ),
+      ),
 
       floatingActionButton: FloatingActionButton(
         onPressed: widget.onAddStory,

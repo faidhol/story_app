@@ -19,6 +19,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   late AuthViewModel vm;
 
+  bool isLoading = false; // 🔥 pindah ke UI
+
   @override
   void initState() {
     super.initState();
@@ -39,15 +41,19 @@ class _RegisterPageState extends State<RegisterPage> {
     final password = passC.text.trim();
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Semua field wajib diisi")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Semua field wajib diisi")),
+      );
       return;
     }
+
+    setState(() => isLoading = true);
 
     final success = await vm.register(name, email, password);
 
     if (!mounted) return;
+
+    setState(() => isLoading = false);
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -56,12 +62,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
       widget.onBack();
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(vm.error ?? "Register gagal")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(vm.error ?? "Register gagal")),
+      );
     }
-
-    setState(() {});
   }
 
   @override
@@ -70,7 +74,6 @@ class _RegisterPageState extends State<RegisterPage> {
       appBar: AppBar(
         title: const Text("Register"),
         centerTitle: true,
-
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: widget.onBack,
@@ -122,12 +125,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
             const SizedBox(height: 20),
 
-            vm.isLoading
+            isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : SizedBox(
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: handleRegister,
+                      onPressed: isLoading ? null : handleRegister,
                       child: const Text("Register"),
                     ),
                   ),

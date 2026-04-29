@@ -11,9 +11,13 @@ class AuthRepository {
     try {
       final response = await _apiService.login(email, password);
 
-      final user = UserModel.fromJson(response['loginResult']);
+      final loginResult = response['loginResult'];
 
-      await PreferencesHelper.saveToken(user.token);
+      final token = loginResult['token'];
+
+      final user = UserModel.fromJson(loginResult);
+
+      await PreferencesHelper.saveToken(token);
 
       return user;
     } catch (e) {
@@ -39,8 +43,9 @@ class AuthRepository {
     return await PreferencesHelper.getToken();
   }
 
+  /// 🔹 CHECK LOGIN
   Future<bool> isLoggedIn() async {
     final token = await getToken();
-    return token != null;
+    return token != null && token.isNotEmpty;
   }
 }

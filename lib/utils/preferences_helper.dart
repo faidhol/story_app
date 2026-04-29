@@ -15,7 +15,7 @@ class PreferencesHelper {
 
   static Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.remove(_tokenKey);
   }
 
   static Future<bool> isLoggedIn() async {
