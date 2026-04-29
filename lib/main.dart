@@ -18,166 +18,176 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
-  bool isLoading = true;
-  bool isLoggedIn = false;
+class MyRouterDelegate extends RouterDelegate<Object>
+    with ChangeNotifier, PopNavigatorRouterDelegateMixin<Object> {
 
+  @override
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  bool isLoggedIn = false;
   bool isRegister = false;
   bool isAddStory = false;
 
   StoryModel? selectedStory;
 
-  /// 🔥 key untuk trigger reload StoryListPage
   Key storyListKey = UniqueKey();
 
-  @override
-  void initState() {
-    super.initState();
-    checkSession();
-  }
-
-  Future<void> checkSession() async {
+  Future<void> init() async {
     final token = await PreferencesHelper.getToken();
-
-    setState(() {
-      isLoggedIn = token != null;
-      isLoading = false;
-    });
+    isLoggedIn = token != null;
+    notifyListeners();
   }
 
-  void loginSuccess() {
-    setState(() {
-      isLoggedIn = true;
-    });
+  /// 🔥 ACTIONS
+  void login() {
+    isLoggedIn = true;
+    notifyListeners();
   }
 
   void logout() async {
     await PreferencesHelper.clear();
-    setState(() {
-      isLoggedIn = false;
-      isRegister = false;
-      isAddStory = false;
-      selectedStory = null;
-    });
+    isLoggedIn = false;
+    isRegister = false;
+    isAddStory = false;
+    selectedStory = null;
+    notifyListeners();
   }
 
   void openRegister() {
-    setState(() {
-      isRegister = true;
-    });
+    isRegister = true;
+    notifyListeners();
   }
 
   void closeRegister() {
-    setState(() {
-      isRegister = false;
-    });
+    isRegister = false;
+    notifyListeners();
   }
 
   void openAddStory() {
-    setState(() {
-      isAddStory = true;
-    });
+    isAddStory = true;
+    notifyListeners();
   }
 
   void closeAddStory() {
-    setState(() {
-      isAddStory = false;
-    });
+    isAddStory = false;
+    notifyListeners();
   }
 
   void openDetail(StoryModel story) {
-    setState(() {
-      selectedStory = story;
-    });
+    selectedStory = story;
+    notifyListeners();
   }
 
   void closeDetail() {
-    setState(() {
-      selectedStory = null;
-    });
+    selectedStory = null;
+    notifyListeners();
   }
 
   void refreshStories() {
-    setState(() {
-      storyListKey = UniqueKey(); // 🔥 force rebuild list
-    });
-  }
-
-  void handleSystemBack() {
-    if (selectedStory != null) {
-      closeDetail();
-    } else if (isAddStory) {
-      closeAddStory();
-    } else if (isRegister) {
-      closeRegister();
-    }
+    storyListKey = UniqueKey();
+    notifyListeners();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const MaterialApp(
-        home: Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
-      );
+    return Navigator(
+      key: navigatorKey,
+      pages: [
+        if (!isLoggedIn)
+          MaterialPage(
+            child: LoginPage(
+              onLoginSuccess: login,
+              onRegister: openRegister,
+            ),
+          ),
+
+        if (!isLoggedIn && isRegister)
+          MaterialPage(
+            child: RegisterPage(onBack: closeRegister),
+          ),
+
+        if (isLoggedIn)
+          MaterialPage(
+            child: StoryListPage(
+              key: storyListKey,
+              onLogout: logout,
+              onAddStory: openAddStory,
+              onDetail: openDetail,
+            ),
+          ),
+
+        if (isAddStory)
+          MaterialPage(
+            child: AddStoryPage(
+              onBack: closeAddStory,
+              onSuccess: refreshStories,
+            ),
+          ),
+
+        if (selectedStory != null)
+          MaterialPage(
+            child: StoryDetailPage(
+              story: selectedStory!,
+              onBack: closeDetail,
+            ),
+          ),
+      ],
+
+      onDidRemovePage: (page) {
+        if (selectedStory != null) {
+          closeDetail();
+        } else if (isAddStory) {
+          closeAddStory();
+        } else if (isRegister) {
+          closeRegister();
+        }
+      },
+    );
+  }
+
+  @override
+  Future<bool> popRoute() {
+    if (selectedStory != null) {
+      closeDetail();
+      return Future.value(true);
+    } else if (isAddStory) {
+      closeAddStory();
+      return Future.value(true);
+    } else if (isRegister) {
+      closeRegister();
+      return Future.value(true);
     }
+    return Future.value(false);
+  }
 
-    return MaterialApp(
+  @override
+  Future<void> setNewRoutePath(void configuration) async {}
+}
+
+class MyRouteParser extends RouteInformationParser<Object> {
+  @override
+  Future<Object> parseRouteInformation(
+      RouteInformation routeInformation) async => Object();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final MyRouterDelegate _routerDelegate;
+  final MyRouteParser _parser = MyRouteParser();
+
+  @override
+  void initState() {
+    super.initState();
+    _routerDelegate = MyRouterDelegate();
+    _routerDelegate.init();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      home: PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          handleSystemBack();
-        },
-        child: Navigator(
-          pages: [
-            if (!isLoggedIn)
-              MaterialPage(
-                child: LoginPage(
-                  onLoginSuccess: loginSuccess,
-                  onRegister: openRegister,
-                ),
-              ),
-
-            if (!isLoggedIn && isRegister)
-              MaterialPage(
-                child: RegisterPage(onBack: closeRegister),
-              ),
-
-            if (isLoggedIn)
-              MaterialPage(
-                child: StoryListPage(
-                  key: storyListKey, 
-                  onLogout: logout,
-                  onAddStory: openAddStory,
-                  onDetail: openDetail,
-                ),
-              ),
-
-            if (isAddStory)
-              MaterialPage(
-                child: AddStoryPage(
-                  onBack: closeAddStory,
-                  onSuccess: refreshStories,
-                ),
-              ),
-
-            if (selectedStory != null)
-              MaterialPage(
-                child: StoryDetailPage(
-                  story: selectedStory!,
-                  onBack: closeDetail,
-                ),
-              ),
-          ],
-
-          onDidRemovePage: (page) {
-            handleSystemBack();
-          },
-        ),
-      ),
+      routerDelegate: _routerDelegate,
+      routeInformationParser: _parser,
+      backButtonDispatcher: RootBackButtonDispatcher(),
     );
   }
 }

@@ -64,8 +64,8 @@ class _AddStoryPageState extends State<AddStoryPage> {
           const SnackBar(content: Text("Story berhasil diupload")),
         );
 
-        widget.onSuccess(); 
-        widget.onBack(); 
+        widget.onSuccess();
+        widget.onBack();
       } else {
         ScaffoldMessenger.of(
           context,

@@ -68,56 +68,51 @@ class _StoryListPageState extends State<StoryListPage> {
 
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-
           : error != null
-              ? Center(child: Text(error!))
+          ? Center(child: Text(error!))
+          : stories.isEmpty
+          ? const Center(child: Text("Belum ada story"))
+          : RefreshIndicator(
+              onRefresh: fetchStories,
+              child: ListView.builder(
+                itemCount: stories.length,
+                itemBuilder: (context, index) {
+                  final story = stories[index];
 
-              : stories.isEmpty
-                  ? const Center(child: Text("Belum ada story"))
+                  return Card(
+                    margin: const EdgeInsets.all(10),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(10),
 
-                  : RefreshIndicator(
-                      onRefresh: fetchStories,
-                      child: ListView.builder(
-                        itemCount: stories.length,
-                        itemBuilder: (context, index) {
-                          final story = stories[index];
-
-                          return Card(
-                            margin: const EdgeInsets.all(10),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(10),
-
-                              leading: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  story.photoUrl,
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      const Icon(Icons.broken_image),
-                                ),
-                              ),
-
-                              title: Text(
-                                story.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
-                              subtitle: Text(
-                                story.description,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-
-                              onTap: () => widget.onDetail(story),
-                            ),
-                          );
-                        },
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          story.photoUrl,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) =>
+                              const Icon(Icons.broken_image),
+                        ),
                       ),
+
+                      title: Text(
+                        story.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+
+                      subtitle: Text(
+                        story.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      onTap: () => widget.onDetail(story),
                     ),
+                  );
+                },
+              ),
+            ),
 
       floatingActionButton: FloatingActionButton(
         onPressed: widget.onAddStory,
