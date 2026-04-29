@@ -20,7 +20,6 @@ class MyApp extends StatefulWidget {
 
 class MyRouterDelegate extends RouterDelegate<Object>
     with ChangeNotifier, PopNavigatorRouterDelegateMixin<Object> {
-
   @override
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -95,16 +94,11 @@ class MyRouterDelegate extends RouterDelegate<Object>
       pages: [
         if (!isLoggedIn)
           MaterialPage(
-            child: LoginPage(
-              onLoginSuccess: login,
-              onRegister: openRegister,
-            ),
+            child: LoginPage(onLoginSuccess: login, onRegister: openRegister),
           ),
 
         if (!isLoggedIn && isRegister)
-          MaterialPage(
-            child: RegisterPage(onBack: closeRegister),
-          ),
+          MaterialPage(child: RegisterPage(onBack: closeRegister)),
 
         if (isLoggedIn)
           MaterialPage(
@@ -126,10 +120,7 @@ class MyRouterDelegate extends RouterDelegate<Object>
 
         if (selectedStory != null)
           MaterialPage(
-            child: StoryDetailPage(
-              story: selectedStory!,
-              onBack: closeDetail,
-            ),
+            child: StoryDetailPage(story: selectedStory!, onBack: closeDetail),
           ),
       ],
 
@@ -167,7 +158,8 @@ class MyRouterDelegate extends RouterDelegate<Object>
 class MyRouteParser extends RouteInformationParser<Object> {
   @override
   Future<Object> parseRouteInformation(
-      RouteInformation routeInformation) async => Object();
+    RouteInformation routeInformation,
+  ) async => Object();
 }
 
 class _MyAppState extends State<MyApp> {
