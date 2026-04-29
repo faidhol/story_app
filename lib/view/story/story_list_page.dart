@@ -7,14 +7,12 @@ class StoryListPage extends StatefulWidget {
   final VoidCallback onLogout;
   final VoidCallback onAddStory;
   final Function(StoryModel) onDetail;
-  final bool shouldRefresh;
 
   const StoryListPage({
     super.key,
     required this.onLogout,
     required this.onAddStory,
     required this.onDetail,
-    required this.shouldRefresh,
   });
 
   @override
@@ -47,9 +45,11 @@ class _StoryListPageState extends State<StoryListPage> {
       error = e.toString();
     }
 
-    setState(() {
-      isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -68,51 +68,56 @@ class _StoryListPageState extends State<StoryListPage> {
 
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
+
           : error != null
-          ? Center(child: Text(error!))
-          : stories.isEmpty
-          ? const Center(child: Text("Belum ada story"))
-          : RefreshIndicator(
-              onRefresh: fetchStories,
-              child: ListView.builder(
-                itemCount: stories.length,
-                itemBuilder: (context, index) {
-                  final story = stories[index];
+              ? Center(child: Text(error!))
 
-                  return Card(
-                    margin: const EdgeInsets.all(10),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(10),
+              : stories.isEmpty
+                  ? const Center(child: Text("Belum ada story"))
 
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          story.photoUrl,
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) =>
-                              const Icon(Icons.broken_image),
-                        ),
+                  : RefreshIndicator(
+                      onRefresh: fetchStories,
+                      child: ListView.builder(
+                        itemCount: stories.length,
+                        itemBuilder: (context, index) {
+                          final story = stories[index];
+
+                          return Card(
+                            margin: const EdgeInsets.all(10),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(10),
+
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  story.photoUrl,
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const Icon(Icons.broken_image),
+                                ),
+                              ),
+
+                              title: Text(
+                                story.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              subtitle: Text(
+                                story.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+
+                              onTap: () => widget.onDetail(story),
+                            ),
+                          );
+                        },
                       ),
-
-                      title: Text(
-                        story.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-
-                      subtitle: Text(
-                        story.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-
-                      onTap: () => widget.onDetail(story),
                     ),
-                  );
-                },
-              ),
-            ),
 
       floatingActionButton: FloatingActionButton(
         onPressed: widget.onAddStory,

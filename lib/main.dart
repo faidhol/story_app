@@ -24,9 +24,11 @@ class _MyAppState extends State<MyApp> {
 
   bool isRegister = false;
   bool isAddStory = false;
-  bool shouldRefresh = false;
 
   StoryModel? selectedStory;
+
+  /// 🔥 key untuk trigger reload StoryListPage
+  Key storyListKey = UniqueKey();
 
   @override
   void initState() {
@@ -53,6 +55,9 @@ class _MyAppState extends State<MyApp> {
     await PreferencesHelper.clear();
     setState(() {
       isLoggedIn = false;
+      isRegister = false;
+      isAddStory = false;
+      selectedStory = null;
     });
   }
 
@@ -77,15 +82,6 @@ class _MyAppState extends State<MyApp> {
   void closeAddStory() {
     setState(() {
       isAddStory = false;
-      shouldRefresh = true;
-    });
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        setState(() {
-          shouldRefresh = false;
-        });
-      }
     });
   }
 
@@ -98,6 +94,12 @@ class _MyAppState extends State<MyApp> {
   void closeDetail() {
     setState(() {
       selectedStory = null;
+    });
+  }
+
+  void refreshStories() {
+    setState(() {
+      storyListKey = UniqueKey(); // 🔥 force rebuild list
     });
   }
 
@@ -115,20 +117,20 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return const MaterialApp(
-        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-
       home: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
           handleSystemBack();
         },
-
         child: Navigator(
           pages: [
             if (!isLoggedIn)
@@ -140,20 +142,27 @@ class _MyAppState extends State<MyApp> {
               ),
 
             if (!isLoggedIn && isRegister)
-              MaterialPage(child: RegisterPage(onBack: closeRegister)),
+              MaterialPage(
+                child: RegisterPage(onBack: closeRegister),
+              ),
 
             if (isLoggedIn)
               MaterialPage(
                 child: StoryListPage(
+                  key: storyListKey, 
                   onLogout: logout,
                   onAddStory: openAddStory,
                   onDetail: openDetail,
-                  shouldRefresh: shouldRefresh,
                 ),
               ),
 
             if (isAddStory)
-              MaterialPage(child: AddStoryPage(onBack: closeAddStory)),
+              MaterialPage(
+                child: AddStoryPage(
+                  onBack: closeAddStory,
+                  onSuccess: refreshStories,
+                ),
+              ),
 
             if (selectedStory != null)
               MaterialPage(

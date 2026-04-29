@@ -6,8 +6,13 @@ import '../../data/repository/story_repository.dart';
 
 class AddStoryPage extends StatefulWidget {
   final VoidCallback onBack;
+  final VoidCallback onSuccess;
 
-  const AddStoryPage({super.key, required this.onBack});
+  const AddStoryPage({
+    super.key,
+    required this.onBack,
+    required this.onSuccess,
+  });
 
   @override
   State<AddStoryPage> createState() => _AddStoryPageState();
@@ -22,21 +27,21 @@ class _AddStoryPageState extends State<AddStoryPage> {
 
   final repo = StoryRepository(ApiService());
 
-  Future pickCamera() async {
+  Future<void> pickCamera() async {
     final result = await picker.pickImage(source: ImageSource.camera);
     if (result != null) {
       setState(() => image = result);
     }
   }
 
-  Future pickGallery() async {
+  Future<void> pickGallery() async {
     final result = await picker.pickImage(source: ImageSource.gallery);
     if (result != null) {
       setState(() => image = result);
     }
   }
 
-  Future handleUpload() async {
+  Future<void> handleUpload() async {
     if (image == null || descC.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Gambar & deskripsi wajib diisi")),
@@ -59,8 +64,8 @@ class _AddStoryPageState extends State<AddStoryPage> {
           const SnackBar(content: Text("Story berhasil diupload")),
         );
 
-        /// 🔥 DECLARATIVE: kembali ke list
-        widget.onBack();
+        widget.onSuccess(); 
+        widget.onBack(); 
       } else {
         ScaffoldMessenger.of(
           context,
@@ -72,7 +77,9 @@ class _AddStoryPageState extends State<AddStoryPage> {
       ).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
 
-    setState(() => isLoading = false);
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -87,7 +94,6 @@ class _AddStoryPageState extends State<AddStoryPage> {
       appBar: AppBar(
         title: const Text("Tambah Story"),
         centerTitle: true,
-
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: widget.onBack,
@@ -97,7 +103,6 @@ class _AddStoryPageState extends State<AddStoryPage> {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            /// 🔹 PREVIEW IMAGE
             Container(
               height: 200,
               decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
